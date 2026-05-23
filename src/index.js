@@ -1,26 +1,26 @@
-const debug = false
-const user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36'
-const elements_to_disable = ['.notifications-placeholder', '.top-ads-container', '.fandom-sticky-header', 'div#WikiaBar', 'aside.page__right-rail',
+const Silian_debug = false
+const Silian_user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36'
+const Silian_elements_to_disable = ['.notifications-placeholder', '.top-ads-container', '.fandom-sticky-header', 'div#WikiaBar', 'aside.page__right-rail',
   '.n-modal-container', 'div#moe-float-toc-container', 'div#moe-draw-float-button', 'div#moe-global-header', '.mys-wrapper',
   'div#moe-open-in-app', 'div#age-gate', ".va-variant-prompt", ".va-variant-prompt-mobile"]
-const { resolve } = require('path')
-require('dotenv').config({ path: resolve(__dirname, '../.env') })
-const express = require('express')
-const puppeteer = require(process.env.NODE_ENV === 'production' ? 'puppeteer' : 'puppeteer-core')
-const mergeImg = require('merge-img')
-const compression = require('compression')
-const Jimp = require('jimp')
-const fs = require('fs')
-const uuid = require('uuid')
-const cwd = process.cwd()
-const cache_path = cwd + '/cache/'
+const { resolve: Silian_resolve } = require('path')
+require('dotenv').config({ path: Silian_resolve(__dirname, '../.env') })
+const Silian_express = require('express')
+const Silian_puppeteer = require(process.env.NODE_ENV === 'production' ? 'puppeteer' : 'puppeteer-core')
+const Silian_mergeImg = require('merge-img')
+const Silian_compression = require('compression')
+const Silian_Jimp = require('jimp')
+const Silian_fs = require('fs')
+const Silian_uuid = require('uuid')
+const Silian_cwd = process.cwd()
+const Silian_cache_path = Silian_cwd + '/cache/'
 
-if (fs.existsSync(cache_path)) {
-  fs.rmSync(cache_path, { recursive: true, force: true });
+if (Silian_fs.existsSync(Silian_cache_path)) {
+  Silian_fs.rmSync(Silian_cache_path, { recursive: true, force: true });
 }
-fs.mkdirSync(cache_path)
+Silian_fs.mkdirSync(Silian_cache_path)
 
-const custom_css = `
+const Silian_custom_css = `
 span.heimu a.external, span.heimu a.external:visited, span.heimu a.extiw, span.heimu a.extiw:visited {
   color: #252525;}
 .heimu, .heimu a, a .heimu, .heimu a.new {
@@ -37,114 +37,114 @@ span.heimu a.external, span.heimu a.external:visited, span.heimu a.extiw, span.h
 `
 
 
-async function makeScreenshot(page, el) {
-  const contentSize = await el.boundingBox()
-  const dpr = page.viewport().deviceScaleFactor || 1;
-  const maxScreenshotHeight = Math.floor(8 * 1024 / dpr)
-  const images = []
+async function Silian_makeScreenshot(Silian_page, Silian_el) {
+  const Silian_contentSize = await Silian_el.boundingBox()
+  const Silian_dpr = Silian_page.viewport().deviceScaleFactor || 1;
+  const Silian_maxScreenshotHeight = Math.floor(8 * 1024 / Silian_dpr)
+  const Silian_images = []
   // https://bugs.chromium.org/p/chromium/issues/detail?id=770769
-  let total_content_height = contentSize.y
-  for (let ypos = contentSize.y; ypos < contentSize.height + contentSize.y; ypos += maxScreenshotHeight) {
-    total_content_height += maxScreenshotHeight
-    let content_height = maxScreenshotHeight
-    if (total_content_height > contentSize.height + contentSize.y) {
-      content_height = contentSize.height - total_content_height + maxScreenshotHeight + contentSize.y
+  let Silian_total_content_height = Silian_contentSize.y
+  for (let Silian_ypos = Silian_contentSize.y; Silian_ypos < Silian_contentSize.height + Silian_contentSize.y; Silian_ypos += Silian_maxScreenshotHeight) {
+    Silian_total_content_height += Silian_maxScreenshotHeight
+    let Silian_content_height = Silian_maxScreenshotHeight
+    if (Silian_total_content_height > Silian_contentSize.height + Silian_contentSize.y) {
+      Silian_content_height = Silian_contentSize.height - Silian_total_content_height + Silian_maxScreenshotHeight + Silian_contentSize.y
     }
-    let r = await el.screenshot({
+    let Silian_r = await Silian_el.screenshot({
       type: 'jpeg', quality: 90, encoding: 'binary', clip: {
-        x: contentSize.x,
-        y: ypos,
-        width: contentSize.width,
-        height: content_height
+        x: Silian_contentSize.x,
+        y: Silian_ypos,
+        width: Silian_contentSize.width,
+        height: Silian_content_height
       }
     });
-    images.push(r)
-    let result = await mergeImg(images, { direction: true })
-    let read = await new Promise((resolve) => {
-      result.getBuffer(Jimp.MIME_JPEG, (err, buf) => resolve(buf))
+    Silian_images.push(Silian_r)
+    let Silian_result = await Silian_mergeImg(Silian_images, { direction: true })
+    let Silian_read = await new Promise((Silian_resolve) => {
+      Silian_result.getBuffer(Silian_Jimp.MIME_JPEG, (Silian_err, Silian_buf) => Silian_resolve(Silian_buf))
     })
-    return read
+    return Silian_read
   }
 }
 
-async function addCountBox(page, selected_element, endtime) {
-  return await page.evaluate((selected_element, endtime) => {
-    t = document.createElement('span')
-    t.className = 'bot-countbox'
-    t.style = 'position: absolute;opacity: 0.2;'
-    document.querySelector(selected_element).insertBefore(t, document.querySelector(selected_element).firstChild)
-    countTime();
-    function countTime() {
-      var nowtime = new Date();
-      var lefttime = parseInt((nowtime.getTime() - endtime) / 1000);
-      document.querySelector(".bot-countbox").innerHTML = `Generated by akaribot in ${lefttime}s`;
-      if (lefttime <= 0) {
+async function Silian_addCountBox(Silian_page, Silian_selected_element, Silian_endtime) {
+  return await Silian_page.evaluate((Silian_selected_element, Silian_endtime) => {
+    const Silian_t = document.createElement('span')
+    Silian_t.className = 'bot-countbox'
+    Silian_t.style = 'position: absolute;opacity: 0.2;'
+    document.querySelector(Silian_selected_element).insertBefore(Silian_t, document.querySelector(Silian_selected_element).firstChild)
+    Silian_countTime();
+    function Silian_countTime() {
+      var Silian_nowtime = new Date();
+      var Silian_lefttime = parseInt((Silian_nowtime.getTime() - Silian_endtime) / 1000);
+      document.querySelector(".bot-countbox").innerHTML = `Generated by akaribot in ${Silian_lefttime}s`;
+      if (Silian_lefttime <= 0) {
         return;
       }
-      setTimeout(countTime, 1000);
+      setTimeout(Silian_countTime, 1000);
     }
 
-  }, selected_element, endtime)
+  }, Silian_selected_element, Silian_endtime)
 }
 
 
-const app = express()
-app.use(compression())
-app.use(require('body-parser').json({
+const Silian_app = Silian_express()
+Silian_app.use(Silian_compression())
+Silian_app.use(require('body-parser').json({
   limit: '10mb'
 }));
 (async () => {
-  const browser = await puppeteer.launch({
+  const Silian_browser = await Silian_puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
     executablePath: process.env.NODE_ENV === 'production' ? undefined : process.env.CHROMIUM_PATH,
-    headless: !debug,
+    headless: !Silian_debug,
   });
-  app.post('/page', async (req, res) => {
-    const page = await browser.newPage();
+  Silian_app.post('/page', async (Silian_req, Silian_res) => {
+    const Silian_page = await Silian_browser.newPage();
     try {
-      const url = req.body.url
-      const css = req.body.css
-      await page.setViewport({
+      const Silian_url = Silian_req.body.url
+      const Silian_css = Silian_req.body.css
+      await Silian_page.setViewport({
         width: 1280,
         height: 720
       })
-      await page.goto(url, { waitUntil: "networkidle2" })
-      if (css) {
-        page.addStyleTag({ 'content': css })
+      await Silian_page.goto(Silian_url, { waitUntil: "networkidle2" })
+      if (Silian_css) {
+        Silian_page.addStyleTag({ 'content': Silian_css })
       }
 
-      let r = await page.screenshot({ type: 'jpeg', encoding: 'binary' });
-      res.writeHead(200, {
+      let Silian_r = await Silian_page.screenshot({ type: 'jpeg', encoding: 'binary' });
+      Silian_res.writeHead(200, {
         'Content-Type': 'image/jpeg',
-        'Content-Length': r.length
+        'Content-Length': Silian_r.length
       });
-      res.end(r);
-    } catch (e) {
-      res.status(500).json({
-        message: e.message,
-        stack: e.stack
+      Silian_res.end(Silian_r);
+    } catch (Silian_e) {
+      Silian_res.status(500).json({
+        message: Silian_e.message,
+        stack: Silian_e.stack
       })
       return
     } finally {
-      if (!debug) { await page.close() }
+      if (!Silian_debug) { await Silian_page.close() }
     }
   })
-  app.post('/', async (req, res) => {
-    let width = ~~req.body.width || 500
-    let height = ~~req.body.height || 1000
-    let mw = req.body.mw
-    let tracing = ~~req.body.tracing || false
-    let tracing_json = cache_path + uuid.v4() + '.json'
-    const page = await browser.newPage();
-    if (tracing) {
-      await page.tracing.start({ 'path': tracing_json })
+  Silian_app.post('/', async (Silian_req, Silian_res) => {
+    let Silian_width = ~~Silian_req.body.width || 500
+    let Silian_height = ~~Silian_req.body.height || 1000
+    let Silian_mw = Silian_req.body.mw
+    let Silian_tracing = ~~Silian_req.body.tracing || false
+    let Silian_tracing_json = Silian_cache_path + Silian_uuid.v4() + '.json'
+    const Silian_page = await Silian_browser.newPage();
+    if (Silian_tracing) {
+      await Silian_page.tracing.start({ 'path': Silian_tracing_json })
     }
     try {
-      await page.setViewport({
-        width,
-        height
+      await Silian_page.setViewport({
+        width: Silian_width,
+        height: Silian_height
       })
-      let content = `<link rel="preconnect" href="https://fonts.googleapis.com">
+      let Silian_content = `<link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK&family=Noto+Sans+JP&family=Noto+Sans+KR&family=Noto+Sans+SC&family=Noto+Sans+TC&display=swap" rel="stylesheet"><style>html body {
         margin-top: 0px !important;
@@ -184,304 +184,304 @@ app.use(require('body-parser').json({
     }</style>
     <meta charset="UTF-8">
     <body>
-    ${req.body.content}
+    ${Silian_req.body.content}
     </body>`
-      await page.setContent(content, { waitUntil: 'networkidle0' });
-      if (tracing) {
-        await page.tracing.stop()
+      await Silian_page.setContent(Silian_content, { waitUntil: 'networkidle0' });
+      if (Silian_tracing) {
+        await Silian_page.tracing.stop()
       }
-      let selector = null
-      if (mw) {
-        selector = 'body > .mw-parser-output > *:not(script):not(style):not(link):not(meta)'
+      let Silian_selector = null
+      if (Silian_mw) {
+        Silian_selector = 'body > .mw-parser-output > *:not(script):not(style):not(link):not(meta)'
       } else {
-        selector = 'body > *:not(script):not(style):not(link):not(meta)'
+        Silian_selector = 'body > *:not(script):not(style):not(link):not(meta)'
       }
-      const el = await page.$(selector)
-      const read = await makeScreenshot(page, el)
-      res.writeHead(200, {
+      const Silian_el = await Silian_page.$(Silian_selector)
+      const Silian_read = await Silian_makeScreenshot(Silian_page, Silian_el)
+      Silian_res.writeHead(200, {
         'Content-Type': 'image/jpeg',
-        'Content-Length': read.length,
-        'Tracing': tracing ? tracing_json : null
+        'Content-Length': Silian_read.length,
+        'Tracing': Silian_tracing ? Silian_tracing_json : null
       });
-      res.end(read)
-    } catch (e) {
-      res.status(500).json({
-        message: e.message,
-        stack: e.stack
+      Silian_res.end(Silian_read)
+    } catch (Silian_e) {
+      Silian_res.status(500).json({
+        message: Silian_e.message,
+        stack: Silian_e.stack
       })
     } finally {
-      if (!debug) { await page.close() }
+      if (!Silian_debug) { await Silian_page.close() }
     }
 
   })
-  app.post('/element_screenshot', async (req, res) => {
-    let width = ~~req.body.width || 720
-    let height = ~~req.body.height || 1280
-    let element = req.body.element
-    let content = req.body.content
-    let url = req.body.url
-    let counttime = req.body.counttime
-    let tracing = req.body.tracing || false
-    let css = req.body.css
-    let tracing_json = cache_path + uuid.v4() + '.json'
-    const page = await browser.newPage();
-    if (tracing) {
-      await page.tracing.start({ 'path': tracing_json })
+  Silian_app.post('/element_screenshot', async (Silian_req, Silian_res) => {
+    let Silian_width = ~~Silian_req.body.width || 720
+    let Silian_height = ~~Silian_req.body.height || 1280
+    let Silian_element = Silian_req.body.element
+    let Silian_content = Silian_req.body.content
+    let Silian_url = Silian_req.body.url
+    let Silian_counttime = Silian_req.body.counttime
+    let Silian_tracing = Silian_req.body.tracing || false
+    let Silian_css = Silian_req.body.css
+    let Silian_tracing_json = Silian_cache_path + Silian_uuid.v4() + '.json'
+    const Silian_page = await Silian_browser.newPage();
+    if (Silian_tracing) {
+      await Silian_page.tracing.start({ 'path': Silian_tracing_json })
     }
     try {
-      var endtime = (new Date()).getTime()
-      await page.setViewport({
-        width,
-        height
+      var Silian_endtime = (new Date()).getTime()
+      await Silian_page.setViewport({
+        width: Silian_width,
+        height: Silian_height
       })
-      if (content) {
-        await page.setContent(content, { waitUntil: 'networkidle2' });
-      } else if (url) {
-        await page.setUserAgent(user_agent)
-        await page.goto(url, { waitUntil: "networkidle2", timeout: 0 })
+      if (Silian_content) {
+        await Silian_page.setContent(Silian_content, { waitUntil: 'networkidle2' });
+      } else if (Silian_url) {
+        await Silian_page.setUserAgent(Silian_user_agent)
+        await Silian_page.goto(Silian_url, { waitUntil: "networkidle2", timeout: 0 })
       } else {
-        res.status(500).json({
+        Silian_res.status(500).json({
           message: 'A url or content must be specified.'
         })
         return
       }
-      await page.addStyleTag({ 'content': custom_css })
-      if (css) {
-        page.addStyleTag({ 'content': css })
+      await Silian_page.addStyleTag({ 'content': Silian_custom_css })
+      if (Silian_css) {
+        Silian_page.addStyleTag({ 'content': Silian_css })
       }
 
-      await page.evaluate((elements_to_disable) => {
+      await Silian_page.evaluate((Silian_elements_to_disable) => {
 
-        const lazyimg = document.querySelectorAll(".lazyload")
-        for (var i = 0; i < lazyimg.length; i++) {
-          lazyimg[i].className = 'image'
-          lazyimg[i].src = lazyimg[i].getAttribute('data-src')
+        const Silian_lazyimg = document.querySelectorAll(".lazyload")
+        for (var Silian_i = 0; Silian_i < Silian_lazyimg.length; Silian_i++) {
+          Silian_lazyimg[Silian_i].className = 'image'
+          Silian_lazyimg[Silian_i].src = Silian_lazyimg[Silian_i].getAttribute('data-src')
         }
-        const animated = document.querySelectorAll(".animated")
-        for (var i = 0; i < animated.length; i++) {
-          b = animated[i].querySelectorAll('img')
-          for (ii = 0; ii < b.length; ii++) {
-            b[ii].width = b[ii].getAttribute('width') / (b.length / 2)
-            b[ii].height = b[ii].getAttribute('height') / (b.length / 2)
+        const Silian_animated = document.querySelectorAll(".animated")
+        for (var Silian_i = 0; Silian_i < Silian_animated.length; Silian_i++) {
+          const Silian_b = Silian_animated[Silian_i].querySelectorAll('img')
+          for (let Silian_ii = 0; Silian_ii < Silian_b.length; Silian_ii++) {
+            Silian_b[Silian_ii].width = Silian_b[Silian_ii].getAttribute('width') / (Silian_b.length / 2)
+            Silian_b[Silian_ii].height = Silian_b[Silian_ii].getAttribute('height') / (Silian_b.length / 2)
           }
-          animated[i].className = 'nolongeranimatebaka'
+          Silian_animated[Silian_i].className = 'nolongeranimatebaka'
         }
-        for (var i = 0; i < elements_to_disable.length; i++) {
-          const element_to_boom = document.querySelector(elements_to_disable[i])// :rina: :rina: :rina: :rina:
-          if (element_to_boom != null) {
-            element_to_boom.style = 'display: none'
+        for (var Silian_i = 0; Silian_i < Silian_elements_to_disable.length; Silian_i++) {
+          const Silian_element_to_boom = document.querySelector(Silian_elements_to_disable[Silian_i])// :rina: :rina: :rina: :rina:
+          if (Silian_element_to_boom != null) {
+            Silian_element_to_boom.style = 'display: none'
           }
         }
-        document.querySelectorAll('*').forEach(element => {
-          element.parentNode.replaceChild(element.cloneNode(true), element);
+        document.querySelectorAll('*').forEach(Silian_element => {
+          Silian_element.parentNode.replaceChild(Silian_element.cloneNode(true), Silian_element);
         });
         window.scroll(0, 0)
-      }, elements_to_disable)
+      }, Silian_elements_to_disable)
 
-      let selected_element = null
+      let Silian_selected_element = null
 
-      if (Array.isArray(element)) {
-        for (var i = 0; i < element.length; i++) {
-          var el = await page.$(element[i])
-          if (el != null) {
-            selected_element = element[i]
+      if (Array.isArray(Silian_element)) {
+        for (var Silian_i = 0; Silian_i < Silian_element.length; Silian_i++) {
+          var Silian_el = await Silian_page.$(Silian_element[Silian_i])
+          if (Silian_el != null) {
+            Silian_selected_element = Silian_element[Silian_i]
             break
           }
         }
       } else {
-        selected_element = element
-        var el = await page.$(element)
+        Silian_selected_element = Silian_element
+        var Silian_el = await Silian_page.$(Silian_element)
       }
-      if (el == null) {
-        res.status(500).json({
+      if (Silian_el == null) {
+        Silian_res.status(500).json({
           message: 'No given elements matches the selector.'
         })
         return
       }
-      if (counttime == null || counttime == true) {
-        await addCountBox(page, selected_element, endtime)
+      if (Silian_counttime == null || Silian_counttime == true) {
+        await Silian_addCountBox(Silian_page, Silian_selected_element, Silian_endtime)
       }
 
-      page.addStyleTag({ 'content': `${selected_element} {z-index: 99999999999999999999999999999}` })
+      Silian_page.addStyleTag({ 'content': `${Silian_selected_element} {z-index: 99999999999999999999999999999}` })
 
-      if (tracing) {
-        await page.tracing.stop()
+      if (Silian_tracing) {
+        await Silian_page.tracing.stop()
       }
 
-      const read = await makeScreenshot(page, el)
-      res.writeHead(200, {
+      const Silian_read = await Silian_makeScreenshot(Silian_page, Silian_el)
+      Silian_res.writeHead(200, {
         'Content-Type': 'image/jpeg',
-        'Content-Length': read.length,
-        'Tracing': tracing ? tracing_json : null
+        'Content-Length': Silian_read.length,
+        'Tracing': Silian_tracing ? Silian_tracing_json : null
       });
-      res.end(read)
-    } catch (e) {
-      res.status(500).json({
-        message: e.message,
-        stack: e.stack
+      Silian_res.end(Silian_read)
+    } catch (Silian_e) {
+      Silian_res.status(500).json({
+        message: Silian_e.message,
+        stack: Silian_e.stack
       })
     } finally {
-      if (!debug) { await page.close() }
+      if (!Silian_debug) { await Silian_page.close() }
     }
   })
-  app.post('/section_screenshot', async (req, res) => {
-    let width = ~~req.body.width || 1920
-    let height = ~~req.body.height || 1080
-    let section = req.body.section
-    let content = req.body.content
-    let url = req.body.url
-    let counttime = req.body.counttime
-    let tracing = ~~req.body.tracing || false
-    let css = req.body.css
-    let tracing_json = cache_path + uuid.v4() + '.json'
-    const page = await browser.newPage();
-    if (tracing) {
-      await page.tracing.start({ 'path': tracing_json })
+  Silian_app.post('/section_screenshot', async (Silian_req, Silian_res) => {
+    let Silian_width = ~~Silian_req.body.width || 1920
+    let Silian_height = ~~Silian_req.body.height || 1080
+    let Silian_section = Silian_req.body.section
+    let Silian_content = Silian_req.body.content
+    let Silian_url = Silian_req.body.url
+    let Silian_counttime = Silian_req.body.counttime
+    let Silian_tracing = ~~Silian_req.body.tracing || false
+    let Silian_css = Silian_req.body.css
+    let Silian_tracing_json = Silian_cache_path + Silian_uuid.v4() + '.json'
+    const Silian_page = await Silian_browser.newPage();
+    if (Silian_tracing) {
+      await Silian_page.tracing.start({ 'path': Silian_tracing_json })
     }
     try {
-      var endtime = (new Date()).getTime()
-      await page.setViewport({
-        width,
-        height
+      var Silian_endtime = (new Date()).getTime()
+      await Silian_page.setViewport({
+        width: Silian_width,
+        height: Silian_height
       })
-      if (content) {
-        await page.setContent(content, { waitUntil: 'networkidle2' });
-      } else if (url) {
-        await page.setUserAgent(user_agent)
-        await page.goto(url, { waitUntil: "networkidle2" })
+      if (Silian_content) {
+        await Silian_page.setContent(Silian_content, { waitUntil: 'networkidle2' });
+      } else if (Silian_url) {
+        await Silian_page.setUserAgent(Silian_user_agent)
+        await Silian_page.goto(Silian_url, { waitUntil: "networkidle2" })
       } else {
-        res.status(500).json({
+        Silian_res.status(500).json({
           message: 'A url or content must be specified.'
         })
         return
       }
-      await page.addStyleTag({ 'content': custom_css })
-      if (css) {
-        page.addStyleTag({ 'content': css })
+      await Silian_page.addStyleTag({ 'content': Silian_custom_css })
+      if (Silian_css) {
+        Silian_page.addStyleTag({ 'content': Silian_css })
       }
 
-      await page.evaluate((section, elements_to_disable) => {
-        const levels = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
-        let sec = document.getElementById(section).parentNode
-        const sec_level = sec.tagName
-        if (sec.parentNode.className.includes('ext-discussiontools-init-section')){ // wo yi ding yao sha le ni men
-          sec = sec.parentNode
+      await Silian_page.evaluate((Silian_section, Silian_elements_to_disable) => {
+        const Silian_levels = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
+        let Silian_sec = document.getElementById(Silian_section).parentNode
+        const Silian_sec_level = Silian_sec.tagName
+        if (Silian_sec.parentNode.className.includes('ext-discussiontools-init-section')){ // wo yi ding yao sha le ni men
+          Silian_sec = Silian_sec.parentNode
         }
-        const nbox = document.createElement('div')
-        nbox.className = 'bot-sectionbox'
-        nbox.style = 'display: inline-block; padding: 15px'
-        nbox.appendChild(sec.cloneNode(true))
-        let next_sibling = sec.nextSibling
-        while (next_sibling) {
-          if (levels.includes(next_sibling.tagName)) {
-            if (levels.indexOf(next_sibling.tagName) <= levels.indexOf(sec_level)) {
+        const Silian_nbox = document.createElement('div')
+        Silian_nbox.className = 'bot-sectionbox'
+        Silian_nbox.style = 'display: inline-block; padding: 15px'
+        Silian_nbox.appendChild(Silian_sec.cloneNode(true))
+        let Silian_next_sibling = Silian_sec.nextSibling
+        while (Silian_next_sibling) {
+          if (Silian_levels.includes(Silian_next_sibling.tagName)) {
+            if (Silian_levels.indexOf(Silian_next_sibling.tagName) <= Silian_levels.indexOf(Silian_sec_level)) {
               break
             }
           }
-          if (next_sibling.tagName == 'DIV' && next_sibling.className.includes('ext-discussiontools-init-section')) { // wo yi ding yao sha le ni men
-            let child = next_sibling.firstChild
-            let bf = false
-            while(child){
-              if (levels.includes(child.tagName)){
-                if (levels.indexOf(child.tagName) <= levels.indexOf(sec_level)){
-                  bf = true
+          if (Silian_next_sibling.tagName == 'DIV' && Silian_next_sibling.className.includes('ext-discussiontools-init-section')) { // wo yi ding yao sha le ni men
+            let Silian_child = Silian_next_sibling.firstChild
+            let Silian_bf = false
+            while(Silian_child){
+              if (Silian_levels.includes(Silian_child.tagName)){
+                if (Silian_levels.indexOf(Silian_child.tagName) <= Silian_levels.indexOf(Silian_sec_level)){
+                  Silian_bf = true
                   break
                 }
               }
-              child = child.nextSibling
+              Silian_child = Silian_child.nextSibling
             }
-            if (bf){
+            if (Silian_bf){
               break
             }
             
 
           }
-          nbox.appendChild(next_sibling.cloneNode(true))
-          next_sibling = next_sibling.nextSibling
+          Silian_nbox.appendChild(Silian_next_sibling.cloneNode(true))
+          Silian_next_sibling = Silian_next_sibling.nextSibling
         }
-        const lazyimg = nbox.querySelectorAll(".lazyload")
-        for (var i = 0; i < lazyimg.length; i++) {
-          lazyimg[i].className = 'image'
-          lazyimg[i].src = lazyimg[i].getAttribute('data-src')
+        const Silian_lazyimg = Silian_nbox.querySelectorAll(".lazyload")
+        for (var Silian_i = 0; Silian_i < Silian_lazyimg.length; Silian_i++) {
+          Silian_lazyimg[Silian_i].className = 'image'
+          Silian_lazyimg[Silian_i].src = Silian_lazyimg[Silian_i].getAttribute('data-src')
         }
-        const new_parentNode = sec.parentNode.cloneNode()
-        const pparentNode = sec.parentNode.parentNode
-        pparentNode.removeChild(sec.parentNode)
-        pparentNode.appendChild(new_parentNode)
-        new_parentNode.appendChild(nbox)
-        for (var i = 0; i < elements_to_disable.length; i++) {
-          const element_to_boom = document.querySelector(elements_to_disable[i])// :rina: :rina: :rina: :rina:
-          if (element_to_boom != null) {
-            element_to_boom.style = 'display: none'
+        const Silian_new_parentNode = Silian_sec.parentNode.cloneNode()
+        const Silian_pparentNode = Silian_sec.parentNode.parentNode
+        Silian_pparentNode.removeChild(Silian_sec.parentNode)
+        Silian_pparentNode.appendChild(Silian_new_parentNode)
+        Silian_new_parentNode.appendChild(Silian_nbox)
+        for (var Silian_i = 0; Silian_i < Silian_elements_to_disable.length; Silian_i++) {
+          const Silian_element_to_boom = document.querySelector(Silian_elements_to_disable[Silian_i])// :rina: :rina: :rina: :rina:
+          if (Silian_element_to_boom != null) {
+            Silian_element_to_boom.style = 'display: none'
           }
         }
-        document.querySelectorAll('*').forEach(element => {
-          element.parentNode.replaceChild(element.cloneNode(true), element);
+        document.querySelectorAll('*').forEach(Silian_element => {
+          Silian_element.parentNode.replaceChild(Silian_element.cloneNode(true), Silian_element);
         });
         window.scroll(0, 0)
-      }, section, elements_to_disable)
+      }, Silian_section, Silian_elements_to_disable)
 
 
-      let el = await page.$('.bot-sectionbox')
-      if (el == null) {
-        res.status(500).json({
+      let Silian_el = await Silian_page.$('.bot-sectionbox')
+      if (Silian_el == null) {
+        Silian_res.status(500).json({
           message: 'No given elements matches the selector.'
         })
         return
       }
 
-      if (counttime == null || counttime == true) {
-        await addCountBox(page, '.bot-sectionbox', endtime)
+      if (Silian_counttime == null || Silian_counttime == true) {
+        await Silian_addCountBox(Silian_page, '.bot-sectionbox', Silian_endtime)
       }
 
-      page.addStyleTag({ 'content': `.bot-sectionbox {z-index: 99999999999999999999999999999}` })
-      el = await page.$('.bot-sectionbox')
-      const read = await makeScreenshot(page, el)
+      Silian_page.addStyleTag({ 'content': `.bot-sectionbox {z-index: 99999999999999999999999999999}` })
+      Silian_el = await Silian_page.$('.bot-sectionbox')
+      const Silian_read = await Silian_makeScreenshot(Silian_page, Silian_el)
 
-      if (tracing) {
-        await page.tracing.stop()
+      if (Silian_tracing) {
+        await Silian_page.tracing.stop()
       }
 
 
-      res.writeHead(200, {
+      Silian_res.writeHead(200, {
         'Content-Type': 'image/jpeg',
-        'Content-Length': read.length,
-        'Tracing': tracing ? tracing_json : null
+        'Content-Length': Silian_read.length,
+        'Tracing': Silian_tracing ? Silian_tracing_json : null
       });
-      res.end(read)
-    } catch (e) {
-      res.status(500).json({
-        message: e.message,
-        stack: e.stack
+      Silian_res.end(Silian_read)
+    } catch (Silian_e) {
+      Silian_res.status(500).json({
+        message: Silian_e.message,
+        stack: Silian_e.stack
       })
     } finally {
-      if (!debug) { await page.close() }
+      if (!Silian_debug) { await Silian_page.close() }
     }
   })
-  app.get('/source', async (req, res) => {
-    const page = await browser.newPage();
+  Silian_app.get('/source', async (Silian_req, Silian_res) => {
+    const Silian_page = await Silian_browser.newPage();
     try {
-      await page.setUserAgent(user_agent)
-      const url = req.query.url
-      await page.setViewport({
+      await Silian_page.setUserAgent(Silian_user_agent)
+      const Silian_url = Silian_req.query.url
+      await Silian_page.setViewport({
         width: 1280,
         height: 720
       })
-      const r = await page.goto(url, { waitUntil: "networkidle2" })
-      if (r.headers()['content-type']) {
-        res.setHeader('content-type', r.headers()['content-type'])
+      const Silian_r = await Silian_page.goto(Silian_url, { waitUntil: "networkidle2" })
+      if (Silian_r.headers()['content-type']) {
+        Silian_res.setHeader('content-type', Silian_r.headers()['content-type'])
       }
-      res.send(await r.buffer())
-    } catch (e) {
-      res.status(500).json({
-        message: e.message,
-        stack: e.stack
+      Silian_res.send(await Silian_r.buffer())
+    } catch (Silian_e) {
+      Silian_res.status(500).json({
+        message: Silian_e.message,
+        stack: Silian_e.stack
       })
     } finally {
-      if (!debug) { await page.close() }
+      if (!Silian_debug) { await Silian_page.close() }
     }
   })
-  const server = app.listen(~~process.env.FC_SERVER_PORT || 15551)
-  server.timeout = 0
-  server.keepAliveTimeout = 0
+  const Silian_server = Silian_app.listen(~~process.env.FC_SERVER_PORT || 15551)
+  Silian_server.timeout = 0
+  Silian_server.keepAliveTimeout = 0
 })()
